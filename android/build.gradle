@@ -1,0 +1,19 @@
+// Plugin Android viết bằng Java (không áp dụng Kotlin Gradle Plugin).
+group = "com.huanhuynh.xpromo.flutter"
+version = "1.0.0"
+
+apply plugin: "com.android.library"
+
+android {
+    namespace = "com.huanhuynh.xpromo.flutter"
+    compileSdk = 36
+
+    defaultConfig {
+        minSdk = 21
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+}

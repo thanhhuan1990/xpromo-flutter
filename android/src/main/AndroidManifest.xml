@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+        Android 11+: chỉ thấy được app khai báo ở đây → dùng để không gợi ý app user đã cài.
+        Tự gộp vào manifest của app dùng plugin. Có app mới: thêm package vào đây + assets/apps.json, ra tag mới.
+        Test manifest_queries_test.dart kiểm tra mọi app trong assets/apps.json đều có ở đây.
+    -->
+    <queries>
+        <package android:name="com.huanhuynh.lichvannien" />
+        <package android:name="com.huanhuynh.sochitieu" />
+        <package android:name="com.huanhuynh.waterreminder" />
+        <package android:name="com.huanhuynh.numerology" />
+        <package android:name="com.huanhuynh.la_ban_phong_thuy" />
+        <package android:name="com.huanhuynh.spin_the_wheel" />
+        <package android:name="com.huanhuynh.cyclecare" />
+        <package android:name="com.huanhuynh.freshnest" />
+    </queries>
+</manifest>

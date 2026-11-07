@@ -1,0 +1,26 @@
+name: xpromo
+description: Quảng bá chéo các app của HuanHuynh cho Flutter (Android). Đọc cùng apps.json với xpromo-android.
+version: 1.0.0
+publish_to: none
+repository: https://github.com/thanhhuan1990/xpromo-flutter
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: '>=3.10.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.huanhuynh.xpromo.flutter
+        pluginClass: XPromoPlugin
+  assets:
+    - assets/apps.json
