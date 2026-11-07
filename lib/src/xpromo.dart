@@ -76,7 +76,10 @@ class XPromo {
   /// Gọi một lần sau `WidgetsFlutterBinding.ensureInitialized()`. Không ném lỗi; trả null ngoài Android.
   static Future<XPromo?> init(XPromoConfig config) async {
     if (_instance != null) return _instance;
-    if (kIsWeb || !Platform.isAndroid) return null;
+    if (kIsWeb || !Platform.isAndroid) {
+      if (kDebugMode) debugPrint('XPromo: chỉ hỗ trợ Android');
+      return null;
+    }
     try {
       final raw = await _channel.invokeMapMethod<String, Object?>('prefs') ?? <String, Object?>{};
       final prefs = Map<String, Object?>.from(raw);
@@ -87,6 +90,7 @@ class XPromo {
         } catch (_) {}
       }
       _instance = XPromo._(config, prefs, initial ?? const PromoFeed());
+      if (kDebugMode) debugPrint('XPromo: init ok, ${_instance!.feed.value.apps.length} app trong feed');
       return _instance;
     } catch (e) {
       debugPrint('XPromo init failed: $e');
@@ -169,15 +173,26 @@ class XPromo {
 
   /// App cho mục "Ứng dụng khác" (đã lọc app đã cài).
   Future<List<PromoApp>> candidates() async {
-    if (!enabled) return const [];
-    return XPromoPicker.rank(
+    if (!enabled) {
+      if (kDebugMode) debugPrint('XPromo: tắt (config.enabled = false)');
+      return const [];
+    }
+    final installed = await _installed();
+    final hidden = _hidden();
+    final list = XPromoPicker.rank(
       feed.value,
       selfPackage: config.selfPackage,
       hostGroups: config.hostGroups,
       country: PlatformDispatcher.instance.locale.countryCode,
-      installed: await _installed(),
-      hidden: _hidden(),
+      installed: installed,
+      hidden: hidden,
     );
+    if (kDebugMode) {
+      final enabledApps = feed.value.apps.where((a) => a.enabled).map((a) => a.id).toList();
+      debugPrint('XPromo: feed ${feed.value.version} – bật ${enabledApps.length} app $enabledApps; '
+          'đã cài $installed; đã ẩn $hidden; còn gợi ý ${list.length}: ${list.map((a) => a.id).toList()}');
+    }
+    return list;
   }
 
   /// App cho thẻ gợi ý, hoặc null nếu chưa tới lượt (giới hạn tần suất).
