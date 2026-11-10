@@ -41,12 +41,20 @@ class XPromoIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fallback = Container(
+    final emoji = Container(
       width: size,
       height: size,
       alignment: Alignment.center,
-      color: background ?? Theme.of(context).colorScheme.primaryContainer,
+      color: background ?? const Color(0xFFEEF0F3),
       child: Text(app.emoji, style: TextStyle(fontSize: size * 0.5)),
+    );
+    // Icon đóng gói sẵn trong package (không mạng vẫn đúng icon), lỗi nữa mới hiện emoji.
+    final fallback = Image.asset(
+      'packages/xpromo/assets/icons/${app.id}.png',
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) => emoji,
     );
     final url = app.icon;
     return ClipRRect(

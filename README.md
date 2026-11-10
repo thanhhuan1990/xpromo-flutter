@@ -17,7 +17,7 @@ dependencies:
   xpromo:
     git:
       url: https://github.com/thanhhuan1990/xpromo-flutter.git
-      ref: 1.0.3
+      ref: 1.0.4
 ```
 
 `main()` (sau `WidgetsFlutterBinding.ensureInitialized()`):
