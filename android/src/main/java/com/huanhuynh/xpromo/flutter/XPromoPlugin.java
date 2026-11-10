@@ -48,6 +48,9 @@ public class XPromoPlugin implements FlutterPlugin, MethodChannel.MethodCallHand
             case "installed":
                 result.success(installed(call.<List<String>>argument("ids")));
                 break;
+            case "launch":
+                result.success(launch(call.<String>argument("id")));
+                break;
             case "open":
                 result.success(open(call.<String>argument("market"), call.<String>argument("web")));
                 break;
@@ -95,6 +98,18 @@ public class XPromoPlugin implements FlutterPlugin, MethodChannel.MethodCallHand
             }
         }
         return out;
+    }
+
+    private boolean launch(String id) {
+        if (id == null) return false;
+        try {
+            Intent intent = context.getPackageManager().getLaunchIntentForPackage(id);
+            if (intent == null) return false;
+            context.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private boolean open(String market, String web) {

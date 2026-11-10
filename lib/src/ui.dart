@@ -65,14 +65,18 @@ class XPromoIcon extends StatelessWidget {
   }
 }
 
-/// Mục "Ứng dụng khác của chúng tôi": tối đa [max] app chưa cài. Không có gì để hiện → không chiếm chỗ.
+/// Mục "Ứng dụng khác của chúng tôi": tối đa [max] app. App chưa cài nút [installLabel] (mở Google Play),
+/// app đã cài (khi [showInstalled]) nút [openLabel] (mở app). [ids] = chỉ các app này. Rỗng → không chiếm chỗ.
 class MoreAppsSection extends StatefulWidget {
   const MoreAppsSection({
     super.key,
     this.placement = 'settings',
     this.title = 'Ứng dụng khác của chúng tôi',
     this.installLabel = 'Cài',
+    this.openLabel = 'Mở',
     this.max = 4,
+    this.ids,
+    this.showInstalled = false,
     this.style = const XPromoStyle(),
     this.titleStyle,
     this.padding = EdgeInsets.zero,
@@ -81,7 +85,10 @@ class MoreAppsSection extends StatefulWidget {
   final String placement;
   final String title;
   final String installLabel;
+  final String openLabel;
   final int max;
+  final List<String>? ids;
+  final bool showInstalled;
   final XPromoStyle style;
   final TextStyle? titleStyle;
   final EdgeInsetsGeometry padding;
@@ -92,6 +99,7 @@ class MoreAppsSection extends StatefulWidget {
 
 class _MoreAppsSectionState extends State<MoreAppsSection> {
   List<PromoApp> _apps = const [];
+  Set<String> _installed = const {};
   bool _logged = false;
 
   XPromo? get _xpromo => XPromo.instance;
@@ -112,9 +120,17 @@ class _MoreAppsSectionState extends State<MoreAppsSection> {
   Future<void> _load() async {
     final x = _xpromo;
     if (x == null) return;
-    final apps = (await x.candidates()).take(widget.max).toList();
+    final ids = widget.ids;
+    final all = ids != null
+        ? await x.targets(ids, includeInstalled: widget.showInstalled)
+        : await x.candidates(includeInstalled: widget.showInstalled);
+    final apps = all.take(widget.max).toList();
+    final installed = await x.installedIds();
     if (!mounted) return;
-    setState(() => _apps = apps);
+    setState(() {
+      _apps = apps;
+      _installed = installed;
+    });
     if (!_logged && apps.isNotEmpty) {
       _logged = true;
       x.onListShown(apps, widget.placement);
@@ -131,14 +147,15 @@ class _MoreAppsSectionState extends State<MoreAppsSection> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 2, bottom: 10),
-            child: Text(
-              widget.title,
-              style: widget.titleStyle ??
-                  TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: s.muted(context)),
+          if (widget.title.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(left: 2, bottom: 10),
+              child: Text(
+                widget.title,
+                style: widget.titleStyle ??
+                    TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: s.muted(context)),
+              ),
             ),
-          ),
           Container(
             decoration: BoxDecoration(
               color: s.card(context),
@@ -194,7 +211,7 @@ class _MoreAppsSectionState extends State<MoreAppsSection> {
             TextButton(
               onPressed: () => x.open(app, widget.placement),
               style: TextButton.styleFrom(foregroundColor: s.accent(context)),
-              child: Text(widget.installLabel),
+              child: Text(_installed.contains(app.id) ? widget.openLabel : widget.installLabel),
             ),
           ],
         ),

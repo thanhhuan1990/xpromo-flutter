@@ -58,4 +58,16 @@ void main() {
     final missing = parsed.apps.map((e) => e.id).where((id) => !declared.contains(id)).toList();
     expect(missing, isEmpty, reason: 'Thiếu <package> trong AndroidManifest.xml: $missing');
   });
+
+  test('includeInstalled giữ app đã cài (kể cả đang tắt), xếp sau', () {
+    final f = PromoFeed(apps: const [
+      PromoApp(id: 'a', name: 'a', groups: ['spiritual'], priority: 10),
+      PromoApp(id: 'b', name: 'b', groups: ['spiritual'], priority: 90),
+      PromoApp(id: 'off', name: 'off', groups: ['spiritual'], enabled: false),
+    ]);
+    final r = XPromoPicker.rank(f, selfPackage: 'self', hostGroups: const ['spiritual'], installed: const {'b', 'off'}, includeInstalled: true);
+    expect(r.map((e) => e.id).toList(), ['a', 'b', 'off']);
+    final r2 = XPromoPicker.rank(f, selfPackage: 'self', hostGroups: const ['spiritual'], installed: const {'b', 'off'});
+    expect(r2.map((e) => e.id).toList(), ['a']);
+  });
 }

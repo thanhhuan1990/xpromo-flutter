@@ -73,6 +73,15 @@ class XPromo {
 
   Set<String>? _installedCache;
 
+  /// Bản danh sách đóng gói sẵn trong package (để so với bản tải về – lấy bản mới hơn theo `version`).
+  static PromoFeed? _bundled;
+
+  static PromoFeed? _newest(PromoFeed? a, PromoFeed? b) {
+    if (a == null) return b;
+    if (b == null) return a;
+    return b.version.compareTo(a.version) > 0 ? b : a;
+  }
+
   /// Gọi một lần sau `WidgetsFlutterBinding.ensureInitialized()`. Không ném lỗi; trả null ngoài Android.
   static Future<XPromo?> init(XPromoConfig config) async {
     if (_instance != null) return _instance;
@@ -83,12 +92,13 @@ class XPromo {
     try {
       final raw = await _channel.invokeMapMethod<String, Object?>('prefs') ?? <String, Object?>{};
       final prefs = Map<String, Object?>.from(raw);
-      var initial = PromoFeed.tryParse(prefs[_kFeed] as String?);
-      if (initial == null) {
-        try {
-          initial = PromoFeed.tryParse(await rootBundle.loadString(_bundledAsset));
-        } catch (_) {}
-      }
+      final cached = PromoFeed.tryParse(prefs[_kFeed] as String?);
+      PromoFeed? bundled;
+      try {
+        bundled = PromoFeed.tryParse(await rootBundle.loadString(_bundledAsset));
+      } catch (_) {}
+      _bundled = bundled;
+      final initial = _newest(cached, bundled);
       _instance = XPromo._(config, prefs, initial ?? const PromoFeed());
       if (kDebugMode) debugPrint('XPromo: init ok, ${_instance!.feed.value.apps.length} app trong feed');
       return _instance;
@@ -134,7 +144,7 @@ class XPromo {
     _put(_kFeed, raw);
     _put(_kFetchedAt, _now);
     _installedCache = null;
-    feed.value = parsed;
+    feed.value = _newest(parsed, _bundled) ?? parsed;
   }
 
   static Future<String?> _httpGet(String url) async {
@@ -171,8 +181,20 @@ class XPromo {
         .toSet();
   }
 
-  /// App cho mục "Ứng dụng khác" (đã lọc app đã cài).
-  Future<List<PromoApp>> candidates() async {
+  /// App đã cài trên máy (trong danh sách feed).
+  Future<Set<String>> installedIds() => _installed();
+
+  /// Các app [ids] (theo thứ tự) còn đủ điều kiện; mặc định giữ cả app đã cài (nút "Mở"), app chưa cài lên trước.
+  Future<List<PromoApp>> targets(List<String> ids, {bool includeInstalled = true}) async {
+    final ok = {for (final a in await candidates(includeInstalled: includeInstalled)) a.id: a};
+    final installed = await _installed();
+    final list = [for (final id in ids) if (ok[id] != null) ok[id]!];
+    list.sort((a, b) => (installed.contains(a.id) ? 1 : 0).compareTo(installed.contains(b.id) ? 1 : 0));
+    return list;
+  }
+
+  /// App cho mục "Ứng dụng khác". Mặc định bỏ app đã cài; `includeInstalled` giữ lại (xếp sau) để hiện nút "Mở".
+  Future<List<PromoApp>> candidates({bool includeInstalled = false}) async {
     if (!enabled) {
       if (kDebugMode) debugPrint('XPromo: tắt (config.enabled = false)');
       return const [];
@@ -186,6 +208,7 @@ class XPromo {
       country: PlatformDispatcher.instance.locale.countryCode,
       installed: installed,
       hidden: hidden,
+      includeInstalled: includeInstalled,
     );
     if (kDebugMode) {
       final enabledApps = feed.value.apps.where((a) => a.enabled).map((a) => a.id).toList();
@@ -231,8 +254,17 @@ class XPromo {
     _log('xpromo_dismiss', app, placement);
   }
 
-  /// Mở trang Google Play của app (kèm UTM).
+  /// App đã cài → mở app; chưa cài → mở trang Google Play (kèm UTM).
   Future<void> open(PromoApp app, String placement) async {
+    if ((await _installed()).contains(app.id)) {
+      try {
+        final ok = await _channel.invokeMethod<bool>('launch', {'id': app.id}) ?? false;
+        if (ok) {
+          _log('xpromo_open_app', app, placement);
+          return;
+        }
+      } catch (_) {}
+    }
     _log('xpromo_click', app, placement);
     try {
       await _channel.invokeMethod<bool>('open', {
