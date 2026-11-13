@@ -17,7 +17,7 @@ dependencies:
   xpromo:
     git:
       url: https://github.com/thanhhuan1990/xpromo-flutter.git
-      ref: 1.0.6
+      ref: 1.0.7
 ```
 
 `main()` (sau `WidgetsFlutterBinding.ensureInitialized()`):
@@ -39,6 +39,7 @@ const XPromoCard(placement: 'result_done')
 Đổi màu qua `XPromoStyle(cardColor: ..., accentColor: ...)`.
 
 ## Thay đổi
+- 1.0.7 – Sửa lỗi build 1.0.6: `ui.dart` thiếu `import 'picker.dart'` (`XPromoPicker` isn't defined).
 - 1.0.6 – `MoreAppsSection` có nút **"Xem thêm N ứng dụng"** (`expandable`, `maxExpanded` = 12, `moreLabel`/`lessLabel`): hiện sẵn nhóm 1 (app chung nhóm chủ đề, tối đa `max`), bấm để xem nhóm 2; event `xpromo_list_expand`; `XPromoPicker.splitForList()`.
 - 1.0.5 – **sửa lỗi hiện "Cài" cho app đã cài**: đọc lại app đã cài mỗi khi app quay lại màn hình (`XPromo.installTick`); khai báo `<queries>` theo action chung `com.huanhuynh.xpromo.MEMBER` + activity `XPromoMemberActivity` để các app luôn thấy nhau (cả app phát hành sau), thêm `<package>` Cờ Tướng, Cờ Vây, Cờ Vua, Cờ Tỷ Phú, Xếp Gạch, Từ Điển. **Chọn app theo nhóm tốt hơn** (giống xpromo-android 1.0.8): nhóm liên quan, lọc theo `languages`, app hiện nhiều lần không ai bấm xếp sau, thẻ gợi ý không lặp app vừa hiện.
 
@@ -53,4 +54,4 @@ dependency_overrides:
 ## Thêm app mới / phát hành
 1. Sửa `apps.json` trên repo `thanhhuan1990.github.io` (các app tự cập nhật ≤ 24 giờ).
 2. Repo này: chép `apps.json` vào `assets/`, thêm `<package>` vào `android/src/main/AndroidManifest.xml`, chạy `flutter test`.
-3. `git tag 1.0.6 && git push origin main --tags`, rồi đổi `ref` trong app.
+3. `git tag 1.0.7 && git push origin main --tags`, rồi đổi `ref` trong app.

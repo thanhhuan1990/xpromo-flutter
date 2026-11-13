@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'models.dart';
+import 'picker.dart';
 import 'xpromo.dart';
 
 /// Màu cho widget XPromo. Mặc định lấy theo Theme của app.
