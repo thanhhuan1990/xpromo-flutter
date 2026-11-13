@@ -73,7 +73,9 @@ class XPromoIcon extends StatelessWidget {
   }
 }
 
-/// Mục "Ứng dụng khác của chúng tôi": tối đa [max] app. App chưa cài nút [installLabel] (mở Google Play),
+/// Mục "Ứng dụng khác của chúng tôi": hiện sẵn nhóm 1 (app chung nhóm chủ đề, tối đa [max] app); khi [expandable]
+/// có nút [moreLabel] ("%d" = số app) để xem thêm nhóm 2 (nhóm liên quan / nhóm khác / đã cài), tổng tối đa [maxExpanded].
+/// Trước đây: tối đa [max] app. App chưa cài nút [installLabel] (mở Google Play),
 /// app đã cài (khi [showInstalled]) nút [openLabel] (mở app). [ids] = chỉ các app này. Rỗng → không chiếm chỗ.
 class MoreAppsSection extends StatefulWidget {
   const MoreAppsSection({
@@ -88,8 +90,16 @@ class MoreAppsSection extends StatefulWidget {
     this.style = const XPromoStyle(),
     this.titleStyle,
     this.padding = EdgeInsets.zero,
+    this.expandable = true,
+    this.maxExpanded = 12,
+    this.moreLabel = 'Xem thêm %d ứng dụng',
+    this.lessLabel = 'Thu gọn',
   });
 
+  final bool expandable;
+  final int maxExpanded;
+  final String moreLabel;
+  final String lessLabel;
   final String placement;
   final String title;
   final String installLabel;
@@ -107,8 +117,11 @@ class MoreAppsSection extends StatefulWidget {
 
 class _MoreAppsSectionState extends State<MoreAppsSection> {
   List<PromoApp> _apps = const [];
+  List<PromoApp> _more = const [];
   Set<String> _installed = const {};
   bool _logged = false;
+  bool _expanded = false;
+  bool _loggedMore = false;
 
   XPromo? get _xpromo => XPromo.instance;
 
@@ -134,11 +147,16 @@ class _MoreAppsSectionState extends State<MoreAppsSection> {
     final all = ids != null
         ? await x.targets(ids, includeInstalled: widget.showInstalled)
         : await x.candidates(includeInstalled: widget.showInstalled);
-    final apps = all.take(widget.max).toList();
+    final (first, rest) = ids != null
+        ? (all.take(widget.max).toList(), all.skip(widget.max).toList())
+        : XPromoPicker.splitForList(all, x.config.hostGroups, widget.max);
+    final apps = first;
+    final more = widget.expandable ? rest.take(widget.maxExpanded > first.length ? widget.maxExpanded - first.length : 0).toList() : <PromoApp>[];
     final installed = await x.installedIds();
     if (!mounted) return;
     setState(() {
       _apps = apps;
+      _more = more;
       _installed = installed;
     });
     if (!_logged && apps.isNotEmpty) {
@@ -175,9 +193,36 @@ class _MoreAppsSectionState extends State<MoreAppsSection> {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
             child: Column(
               children: [
-                for (var i = 0; i < _apps.length; i++) ...[
+                for (final (i, app) in [..._apps, if (_expanded) ..._more].indexed) ...[
                   if (i > 0) Divider(height: 1, color: s.border(context)),
-                  _row(context, x, _apps[i]),
+                  _row(context, x, app),
+                ],
+                if (_more.isNotEmpty) ...[
+                  Divider(height: 1, color: s.border(context)),
+                  InkWell(
+                    onTap: () {
+                      setState(() => _expanded = !_expanded);
+                      if (_expanded && !_loggedMore) {
+                        _loggedMore = true;
+                        x.onListShown(_more, widget.placement);
+                        x.logListExpand(_more.length, widget.placement);
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _expanded ? widget.lessLabel : widget.moreLabel.replaceAll('%d', '${_more.length}'),
+                            style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600, color: s.accent(context)),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(_expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, size: 18, color: s.accent(context)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ],
             ),

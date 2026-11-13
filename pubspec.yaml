@@ -1,6 +1,6 @@
 name: xpromo
 description: Quảng bá chéo các app của HuanHuynh cho Flutter (Android). Đọc cùng apps.json với xpromo-android.
-version: 1.0.5
+version: 1.0.6
 publish_to: none
 repository: https://github.com/thanhhuan1990/xpromo-flutter
 

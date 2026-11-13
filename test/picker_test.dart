@@ -104,6 +104,16 @@ void main() {
     expect(XPromoPicker.pickForCard([app('a')], 2, lastId: 'a')!.id, 'a');
   });
 
+  test('splitForList: nhóm 1 chung nhóm, nhóm 2 còn lại', () {
+    final ranked = [app('a', groups: ['games']), app('b', groups: ['games']), app('c', groups: ['education']), app('d', groups: ['games']), app('e', groups: ['spiritual'])];
+    final (first, rest) = XPromoPicker.splitForList(ranked, ['games', 'fun'], 2);
+    expect(first.map((e) => e.id).toList(), ['a', 'b']);
+    expect(rest.map((e) => e.id).toList(), ['c', 'd', 'e']);
+    final (f2, r2) = XPromoPicker.splitForList(ranked, ['health'], 3);
+    expect(f2.map((e) => e.id).toList(), ['a', 'b', 'c']);
+    expect(r2.map((e) => e.id).toList(), ['d', 'e']);
+  });
+
   test('manifest có intent MEMBER', () {
     final manifest = File('android/src/main/AndroidManifest.xml').readAsStringSync();
     expect('com.huanhuynh.xpromo.MEMBER'.allMatches(manifest).length, 2);

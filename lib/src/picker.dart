@@ -69,6 +69,16 @@ class XPromoPicker {
     return list;
   }
 
+  /// Chia danh sách đã xếp hạng cho mục "Ứng dụng khác": nhóm 1 = app chung nhóm chủ đề với app nguồn
+  /// (tối đa [max]) hiện sẵn; nhóm 2 = các app còn lại, hiện khi bấm "Xem thêm". Không có app chung nhóm
+  /// thì nhóm 1 là [max] app đầu.
+  static (List<PromoApp>, List<PromoApp>) splitForList(List<PromoApp> ranked, List<String> hostGroups, int max) {
+    var first = ranked.where((a) => a.groups.any(hostGroups.contains)).take(max).toList();
+    if (first.isEmpty) first = ranked.take(max).toList();
+    final ids = first.map((a) => a.id).toSet();
+    return (first, ranked.where((a) => !ids.contains(a.id)).toList());
+  }
+
   /// Thẻ gợi ý: xoay vòng trong nhóm đầu (tối đa 3 app) theo số lần đã hiện, bỏ app vừa hiện ([lastId]) nếu còn app khác.
   static PromoApp? pickForCard(List<PromoApp> ranked, int shownCount, {String? lastId}) {
     if (ranked.isEmpty) return null;

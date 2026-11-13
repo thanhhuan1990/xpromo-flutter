@@ -289,6 +289,10 @@ class XPromo {
     _log('xpromo_view', app, placement);
   }
 
+  /// Ghi nhận user bấm "Xem thêm" trong mục "Ứng dụng khác".
+  void logListExpand(int count, String placement) =>
+      _analytics('xpromo_list_expand', {'placement': placement, 'count': count, 'source': config.selfPackage});
+
   void onListShown(List<PromoApp> apps, String placement) {
     if (apps.isEmpty) return;
     final installed = _installedCache ?? const <String>{};
