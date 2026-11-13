@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Tải danh sách app (apps.json) và icon từ thanhhuan1990.github.io. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!--
-        Android 11+: chỉ thấy được app khai báo ở đây → dùng để không gợi ý app user đã cài.
-        Tự gộp vào manifest của app dùng plugin. Có app mới: thêm package vào đây + assets/apps.json, ra tag mới.
-        Test manifest_queries_test.dart kiểm tra mọi app trong assets/apps.json đều có ở đây.
+        Android 11+: chỉ thấy được app khai báo ở đây → dùng để biết app nào đã cài (nút "Mở" thay vì "Cài").
+        Tự gộp vào manifest của app dùng plugin.
+        1. <intent> MEMBER: thấy mọi app có XPromo mới (Android ≥ 1.0.8, Flutter ≥ 1.0.5) (kể cả app phát hành sau này, không cần sửa danh sách).
+        2. <package>: thấy các app dùng XPromo cũ (chưa có MEMBER). Có app mới vẫn nên thêm vào đây + apps.json.
+        Test kiểm tra mọi app trong assets/apps.json đều có <package> (test/picker_test.dart).
     -->
     <queries>
+        <intent>
+            <action android:name="com.huanhuynh.xpromo.MEMBER" />
+        </intent>
         <package android:name="com.huanhuynh.lichvannien" />
         <package android:name="com.huanhuynh.sochitieu" />
         <package android:name="com.huanhuynh.waterreminder" />
@@ -19,5 +25,26 @@
         <package android:name="com.huanhuynh.freshnest" />
         <package android:name="com.huanhuynh.vankhan" />
         <package android:name="com.huanhuynh.xinxam" />
+        <package android:name="com.huanhuynh.cotuong" />
+        <package android:name="com.huanhuynh.covay" />
+        <package android:name="com.huanhuynh.covua" />
+        <package android:name="com.huanhuynh.cotyphu" />
+        <package android:name="com.huanhuynh.xepgach" />
+        <package android:name="com.huanhuynh.tudien" />
     </queries>
+
+    <application>
+        <!-- Đánh dấu app này dùng XPromo để các app cùng nhà phát triển thấy được (xem XPromoMemberActivity). -->
+        <activity
+            android:name="com.huanhuynh.xpromo.flutter.XPromoMemberActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="com.huanhuynh.xpromo.MEMBER" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+    </application>
 </manifest>

@@ -116,12 +116,14 @@ class _MoreAppsSectionState extends State<MoreAppsSection> {
   void initState() {
     super.initState();
     _xpromo?.feed.addListener(_load);
+    _xpromo?.installTick.addListener(_load);
     _load();
   }
 
   @override
   void dispose() {
     _xpromo?.feed.removeListener(_load);
+    _xpromo?.installTick.removeListener(_load);
     super.dispose();
   }
 
@@ -257,16 +259,24 @@ class _XPromoCardState extends State<XPromoCard> {
   @override
   void initState() {
     super.initState();
+    XPromo.instance?.installTick.addListener(_load);
     _load();
+  }
+
+  @override
+  void dispose() {
+    XPromo.instance?.installTick.removeListener(_load);
+    super.dispose();
   }
 
   Future<void> _load() async {
     final x = XPromo.instance;
     if (x == null) return;
     final app = await x.nextCard();
-    if (!mounted || app == null) return;
+    if (!mounted) return;
+    // App vừa được cài (quay lại từ Google Play) → không còn trong danh sách → ẩn thẻ.
     setState(() => _app = app);
-    x.onCardShown(app, widget.placement);
+    if (app != null) x.onCardShown(app, widget.placement);
   }
 
   @override

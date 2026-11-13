@@ -5,6 +5,7 @@ import 'dart:ui' show PlatformDispatcher;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
 
 import 'models.dart';
 import 'picker.dart';
@@ -20,6 +21,7 @@ class XPromoConfig {
     this.hideDays = 30,
     this.enabled,
     this.analytics,
+    this.languages = const ['vi'],
   });
 
   static const String defaultFeedUrl = 'https://thanhhuan1990.github.io/xpromo/apps.json';
@@ -43,6 +45,9 @@ class XPromoConfig {
 
   /// Ghi analytics: xpromo_view / xpromo_list_view / xpromo_click / xpromo_dismiss.
   final void Function(String name, Map<String, Object> params)? analytics;
+
+  /// Ngôn ngữ app hỗ trợ (vi, en…); phần tử đầu là mặc định. Chỉ gợi ý app đích có ngôn ngữ đang dùng.
+  final List<String> languages;
 }
 
 /// Quảng bá chéo: tải danh sách app (cache 24 giờ, dự phòng asset trong package), lọc app đã cài,
@@ -59,6 +64,10 @@ class XPromo {
   static const String _kCardApp = 'card_app';
   static const String _kCardCount = 'card_count';
   static const String _kHide = 'hide_';
+  static const String _kCardLast = 'card_last';
+  static const String _kViews = 'views_';
+  static const String _kViewAt = 'viewat_';
+  static const String _kClicks = 'clicks_';
 
   static XPromo? _instance;
 
@@ -70,6 +79,10 @@ class XPromo {
 
   /// Danh sách hiện tại (đổi khi tải được bản mới).
   final ValueNotifier<PromoFeed> feed;
+
+  /// Tăng mỗi khi app quay lại màn hình: widget đọc lại app nào đã cài (cài xong từ Google Play → hiện "Mở").
+  /// Trước 1.0.5 danh sách app đã cài chỉ đọc một lần nên vẫn hiện "Cài".
+  final ValueNotifier<int> installTick = ValueNotifier<int>(0);
 
   Set<String>? _installedCache;
 
@@ -100,12 +113,42 @@ class XPromo {
       _bundled = bundled;
       final initial = _newest(cached, bundled);
       _instance = XPromo._(config, prefs, initial ?? const PromoFeed());
+      final x = _instance!;
+      WidgetsBinding.instance.addObserver(_ResumeObserver(x.refreshInstalled));
       if (kDebugMode) debugPrint('XPromo: init ok, ${_instance!.feed.value.apps.length} app trong feed');
       return _instance;
     } catch (e) {
       debugPrint('XPromo init failed: $e');
       return null;
     }
+  }
+
+  /// Đọc lại trạng thái cài của các app (tự gọi khi app quay lại màn hình).
+  void refreshInstalled() {
+    _installedCache = null;
+    installTick.value++;
+  }
+
+  /// Ngôn ngữ giao diện hiện tại (trong `config.languages`).
+  String currentLang() {
+    final current = PlatformDispatcher.instance.locale.languageCode;
+    return config.languages.contains(current) ? current : (config.languages.isEmpty ? 'vi' : config.languages.first);
+  }
+
+  Map<String, PromoStats> _stats() {
+    final ids = <String>{};
+    for (final k in _prefs.keys) {
+      if (k.startsWith(_kViews)) ids.add(k.substring(_kViews.length));
+      if (k.startsWith(_kClicks)) ids.add(k.substring(_kClicks.length));
+    }
+    return {for (final id in ids) id: PromoStats(views: _int('$_kViews$id'), clicks: _int('$_kClicks$id'))};
+  }
+
+  /// Đếm lượt hiện, mỗi app tối đa 1 lần / 12 giờ.
+  void _countView(String id) {
+    if (_now - _int('$_kViewAt$id') < 12 * _hourMs) return;
+    _put('$_kViewAt$id', _now);
+    _put('$_kViews$id', _int('$_kViews$id') + 1);
   }
 
   bool get enabled {
@@ -194,7 +237,7 @@ class XPromo {
   }
 
   /// App cho mục "Ứng dụng khác". Mặc định bỏ app đã cài; `includeInstalled` giữ lại (xếp sau) để hiện nút "Mở".
-  Future<List<PromoApp>> candidates({bool includeInstalled = false}) async {
+  Future<List<PromoApp>> candidates({bool includeInstalled = false, String? lang}) async {
     if (!enabled) {
       if (kDebugMode) debugPrint('XPromo: tắt (config.enabled = false)');
       return const [];
@@ -209,6 +252,8 @@ class XPromo {
       installed: installed,
       hidden: hidden,
       includeInstalled: includeInstalled,
+      lang: lang ?? currentLang(),
+      stats: _stats(),
     );
     if (kDebugMode) {
       final enabledApps = feed.value.apps.where((a) => a.enabled).map((a) => a.id).toList();
@@ -230,7 +275,7 @@ class XPromo {
       }
       return null;
     }
-    return XPromoPicker.pickForCard(list, _int(_kCardCount));
+    return XPromoPicker.pickForCard(list, _int(_kCardCount), lastId: _prefs[_kCardLast] as String?);
   }
 
   /// Ghi nhận thẻ đã hiện (bắt đầu tính khoảng cách tần suất).
@@ -238,12 +283,18 @@ class XPromo {
     if (_prefs[_kCardApp] == app.id && _now - _int(_kCardAt) < config.cardMinIntervalDays * _dayMs) return;
     _put(_kCardAt, _now);
     _put(_kCardApp, app.id);
+    _put(_kCardLast, app.id);
     _put(_kCardCount, _int(_kCardCount) + 1);
+    _countView(app.id);
     _log('xpromo_view', app, placement);
   }
 
   void onListShown(List<PromoApp> apps, String placement) {
     if (apps.isEmpty) return;
+    final installed = _installedCache ?? const <String>{};
+    for (final a in apps) {
+      if (!installed.contains(a.id)) _countView(a.id);
+    }
     _analytics('xpromo_list_view', {'placement': placement, 'count': apps.length, 'source': config.selfPackage});
   }
 
@@ -256,6 +307,7 @@ class XPromo {
 
   /// App đã cài → mở app; chưa cài → mở trang Google Play (kèm UTM).
   Future<void> open(PromoApp app, String placement) async {
+    _put('$_kClicks${app.id}', _int('$_kClicks${app.id}') + 1);
     if ((await _installed()).contains(app.id)) {
       try {
         final ok = await _channel.invokeMethod<bool>('launch', {'id': app.id}) ?? false;
@@ -281,5 +333,17 @@ class XPromo {
     try {
       config.analytics?.call(name, params);
     } catch (_) {}
+  }
+}
+
+/// Gọi [onResume] mỗi khi app quay lại màn hình.
+class _ResumeObserver extends WidgetsBindingObserver {
+  _ResumeObserver(this.onResume);
+
+  final void Function() onResume;
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) onResume();
   }
 }

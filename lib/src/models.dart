@@ -12,6 +12,7 @@ class PromoApp {
     this.countries = const [],
     this.priority = 0,
     this.enabled = true,
+    this.languages = const [],
   });
 
   /// Package name trên Google Play.
@@ -33,6 +34,12 @@ class PromoApp {
   final int priority;
   final bool enabled;
 
+  /// Ngôn ngữ giao diện của app đích (vi, en, zh, ja). App chưa cài chỉ được gợi ý khi app nguồn đang dùng
+  /// một trong các ngôn ngữ này. Rỗng = phù hợp mọi ngôn ngữ.
+  final List<String> languages;
+
+  bool supports(String? lang) => lang == null || languages.isEmpty || languages.contains(lang);
+
   factory PromoApp.fromJson(Map<String, dynamic> json) => PromoApp(
         id: json['id'] as String,
         name: json['name'] as String,
@@ -43,10 +50,18 @@ class PromoApp {
         countries: _strings(json['countries']),
         priority: (json['priority'] as num?)?.toInt() ?? 0,
         enabled: (json['enabled'] as bool?) ?? true,
+        languages: _strings(json['languages']),
       );
 
   static List<String> _strings(Object? value) =>
       value is List ? value.whereType<String>().toList() : const <String>[];
+}
+
+/// Số lần một app đã được hiện / được bấm trên máy này.
+class PromoStats {
+  const PromoStats({this.views = 0, this.clicks = 0});
+  final int views;
+  final int clicks;
 }
 
 /// Toàn bộ danh sách (apps.json).
