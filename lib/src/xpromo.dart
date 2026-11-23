@@ -22,6 +22,7 @@ class XPromoConfig {
     this.enabled,
     this.analytics,
     this.languages = const ['vi'],
+    this.currentLanguage,
   });
 
   static const String defaultFeedUrl = 'https://thanhhuan1990.github.io/xpromo/apps.json';
@@ -48,6 +49,10 @@ class XPromoConfig {
 
   /// Ngôn ngữ app hỗ trợ (vi, en…); phần tử đầu là mặc định. Chỉ gợi ý app đích có ngôn ngữ đang dùng.
   final List<String> languages;
+
+  /// Ngôn ngữ app đang hiển thị (vd. `() => Get.locale?.languageCode`). Cần khi app tự chọn ngôn ngữ
+  /// khác ngôn ngữ máy. Null hoặc trả về null → dùng ngôn ngữ của máy.
+  final String? Function()? currentLanguage;
 }
 
 /// Quảng bá chéo: tải danh sách app (cache 24 giờ, dự phòng asset trong package), lọc app đã cài,
@@ -131,7 +136,11 @@ class XPromo {
 
   /// Ngôn ngữ giao diện hiện tại (trong `config.languages`).
   String currentLang() {
-    final current = PlatformDispatcher.instance.locale.languageCode;
+    String? fromApp;
+    try {
+      fromApp = config.currentLanguage?.call();
+    } catch (_) {}
+    final current = fromApp ?? PlatformDispatcher.instance.locale.languageCode;
     return config.languages.contains(current) ? current : (config.languages.isEmpty ? 'vi' : config.languages.first);
   }
 
