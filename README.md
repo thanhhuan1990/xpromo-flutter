@@ -17,7 +17,7 @@ dependencies:
   xpromo:
     git:
       url: https://github.com/thanhhuan1990/xpromo-flutter.git
-      ref: 1.0.9
+      ref: 1.0.10
 ```
 
 `main()` (sau `WidgetsFlutterBinding.ensureInitialized()`):
@@ -39,6 +39,7 @@ const XPromoCard(placement: 'result_done')
 Đổi màu qua `XPromoStyle(cardColor: ..., accentColor: ...)`.
 
 ## Thay đổi
+- 1.0.10 – Thêm Giải Cube 3x3 (`com.huanhuynh.cubesolver`, nhóm `games` + `education`): `<queries>`, icon, danh sách đóng gói sẵn.
 - 1.0.9 – **Sửa lỗi lọc theo ngôn ngữ máy thay vì ngôn ngữ app**: `XPromoConfig(currentLanguage: () => Get.locale?.languageCode)` cho app tự chọn ngôn ngữ (trước đây máy để tiếng Anh, app hiển thị tiếng Việt → không gợi ý app chỉ có tiếng Việt).
 - 1.0.8 – Thêm Tử Vi 2027 – Vận Hạn (`com.huanhuynh.tuvi`): `<queries>`, icon, danh sách đóng gói sẵn.
 - 1.0.7 – Sửa lỗi build 1.0.6: `ui.dart` thiếu `import 'picker.dart'` (`XPromoPicker` isn't defined).
@@ -56,4 +57,4 @@ dependency_overrides:
 ## Thêm app mới / phát hành
 1. Sửa `apps.json` trên repo `thanhhuan1990.github.io` (các app tự cập nhật ≤ 24 giờ).
 2. Repo này: chép `apps.json` vào `assets/`, thêm `<package>` vào `android/src/main/AndroidManifest.xml`, chạy `flutter test`.
-3. `git tag 1.0.9 && git push origin main --tags`, rồi đổi `ref` trong app.
+3. `git tag 1.0.10 && git push origin main --tags`, rồi đổi `ref` trong app.
